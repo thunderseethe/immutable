@@ -1,9 +1,13 @@
 use std::fmt;
+use std::borrow::Borrow;
+use std::convert::Into;
 use std::iter::{Iterator, IntoIterator, FromIterator};
-use std::vec::IntoIter;
 use std::ops::Deref;
 use std::rc::Rc;
+use std::vec::IntoIter;
 
+#[macro_escape]
+#[macro_export]
 macro_rules! list {
     [] => {List::Empty};
     [$ele:expr] => {List::cons($ele, List::Empty)};
@@ -21,12 +25,25 @@ pub struct Iter<E: Clone> {
 }
 
 impl<E: Clone> List<E> {
+
+    #[inline]
     pub fn empty() -> List<E> {
-        return List::Empty;
+        List::Empty
     }
 
-    pub fn cons(head: E, tail: List<E>) -> List<E> {
-        return List::Cons(head, Rc::new(tail));
+    #[inline]
+    pub fn cons<T: Borrow<List<E>>>(head: E, _tail: T) -> List<E> {
+        let tail: Rc<List<E>> = _tail.borrow()
+                                    .clone()
+                                    .into();
+        List::Cons(head, tail)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        match self {
+            &List::Empty => true,
+            &List::Cons(_, _) => false,
+        }
     }
 
     pub fn head(&self) -> E {
@@ -40,6 +57,19 @@ impl<E: Clone> List<E> {
         match self {
             &List::Empty => panic!("Tail called on empy list"),
             &List::Cons(_, ref tail) => tail.clone(),
+        }
+    }
+
+    pub fn length(&self) -> usize {
+        match self {
+            &List::Empty => 0,
+            &List::Cons(_, ref tail) => 1 + tail.length(),
+        }
+    }
+    pub fn append<T: Borrow<List<E>>>(&self, lst: T) -> Self {
+        match self {
+            &List::Empty => lst.borrow().clone(),
+            &List::Cons(ref head, ref tail) => List::Cons(head.clone(), tail.append(lst).into()),
         }
     }
 
@@ -64,11 +94,11 @@ impl<E: Clone> List<E> {
     }*/
 }
 
-impl<E:fmt::Display + Copy> fmt::Debug for List<E> {
+impl<E:fmt::Debug + Clone> fmt::Debug for List<E> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             &List::Empty => write!(f, ""),
-            &List::Cons(ref head, ref tail)  => write!(f, "{}, {:?}", head, tail),
+            &List::Cons(ref head, ref tail)  => write!(f, "{:?}, {:?}", head.clone(), tail.clone()),
         }
     }
 }
@@ -84,17 +114,21 @@ impl<E: Clone> FromIterator<E> for List<E> {
 }
 
 impl<E: Clone> Into<Rc<List<E>>> for List<E> {
-    
+
+    #[inline]
+    fn into(self) -> Rc<List<E>> {
+        Rc::new(self)
+    }
 }
 
-impl<E: Clone> IntoIterator for List<E> {
+impl<'a, E: Clone> IntoIterator for &'a List<E> {
     type Item = E;
     type IntoIter = Iter<E>;
 
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
         Iter {
-            node: Rc::new(self)
+            node: Rc::new(self.clone())
         }
     }
 }
@@ -124,13 +158,16 @@ fn list_macro() {
 }
 
 #[test]
-fn list_filter() {
+fn list_iterator() {
     let lst: List<i32> = List::cons(3, List::cons(4, List::empty()));
-    let lst2: List<i32> =
-        lst.into_iter()
+    let lst2: List<String> =
+        lst.clone()
+           .into_iter()
            .filter(|&x| x != 3)
+           .map(|x| x.to_string())
            .collect();
-    assert_eq!(lst2, List::cons(4, List::empty()));
+
+    assert_eq!(lst2, list![String::from("4")]);
 }
 
 #[test]
@@ -145,16 +182,22 @@ fn list_head() {
     let b: List<i32> = list![2, 1];
     assert!(a.head() != b.head());
 
-    let a: List<i32> = list![];
-    assert_eq!(a.head(), None);
+    //let a: List<i32> = list![];
+    //assert_eq!(a.head(), None);
 }
 
 #[test]
 fn list_tail() {
     let a: List<i32> = list![1, 2, 3];
-    assert_eq!(a.tail(), Some(Rc::new(list![2, 3])));
+    assert_eq!(a.tail(), Rc::new(list![2, 3]));
 
     let a: List<i32> = list![1, 2];
     let b: List<i32> = list![1, 2, 3];
     assert!(a.tail() != b.tail());
+}
+
+#[test]
+fn list_append() {
+    let a: List<i32> = list![1];
+    assert_eq!(a.append(list![2, 3]), list![1, 2, 3]);
 }
