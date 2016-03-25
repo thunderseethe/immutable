@@ -9,7 +9,7 @@ use list::List;
 
 #[macro_escape]
 #[macro_export]
-macro_rules! tree {
+macro_rules! binary_tree {
     [] => {BinaryTree::Empty};
     [$($x:expr),*] => {{
         let mut t = BinaryTree::empty();
@@ -36,7 +36,7 @@ pub struct Iter<E: Clone> {
     stack: Rc< List< Rc< BinaryTree<E> > > >,
 }
 
-impl<E> BinaryTree<E> where E: Clone + Eq + Ord + Debug {
+impl<E> BinaryTree<E> where E: Clone + Eq + Ord {
     #[inline]
     pub fn node(_c: Color, val: E, left: BinaryTree<E>, right: BinaryTree<E>) -> Self {
         //assert!(left.is_empty() || left.value() < val);
@@ -47,6 +47,23 @@ impl<E> BinaryTree<E> where E: Clone + Eq + Ord + Debug {
     #[inline]
     pub fn empty() -> Self {
         BinaryTree::Empty
+    }
+
+    pub fn get<K>(&self, val: K) -> E where E:PartialOrd<K> {
+        match self.safe_get(val) {
+            None => panic!("No value found in tree"),
+            Some(value) => value,
+        }
+    }
+
+    pub fn safe_get<K>(&self, val: K) -> Option<E> where E: PartialOrd<K> {
+        match self {
+            &BinaryTree::Empty => None,
+            &BinaryTree::Node(_, ref value, ref left, ref right) =>
+                if value > &val { left.safe_get(val) }
+                else if value < &val { right.safe_get(val) }
+                else { Some(value.clone()) }
+        }
     }
 
     pub fn insert(&self, val: E) -> Self {
@@ -190,7 +207,7 @@ impl<E: Clone + Debug> Debug for BinaryTree<E>{
 }
 
 
-impl<E: Clone + Ord + Eq + Debug> IntoIterator for BinaryTree<E> {
+impl<E: Clone + Ord + Eq> IntoIterator for BinaryTree<E> {
     type Item = E;
     type IntoIter = Iter<E>;
 
@@ -203,7 +220,7 @@ impl<E: Clone + Ord + Eq + Debug> IntoIterator for BinaryTree<E> {
     }
 }
 
-impl<E: Clone + Ord + Eq + Debug> FromIterator<E> for BinaryTree<E> {
+impl<E: Clone + Ord + Eq> FromIterator<E> for BinaryTree<E> {
     fn from_iter<I: IntoIterator<Item=E>>(iterator: I) -> Self {
         iterator
             .into_iter()
@@ -211,7 +228,7 @@ impl<E: Clone + Ord + Eq + Debug> FromIterator<E> for BinaryTree<E> {
     }
 }
 
-impl<E: Clone + Ord + Eq + Debug> Iterator for Iter<E> {
+impl<E: Clone + Ord + Eq> Iterator for Iter<E> {
     type Item = E;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -247,7 +264,7 @@ fn tree_macro() {
 
 #[test]
 fn tree_iter() {
-    let tree = tree![1, 5, 3, 4, 2];
+    let tree = binary_tree![1, 5, 3, 4, 2];
     let list: List<i32> =
         tree.into_iter()
             .map(|x| x * 2)
