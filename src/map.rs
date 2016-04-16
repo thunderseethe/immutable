@@ -69,7 +69,7 @@ impl<K: Clone + Ord + Eq, V: Clone> Map<K, V> {
         }
     }
 
-    pub fn get(&self, key: K) -> Entry<K, V> {
+    pub fn get(&self, key: K) -> Option<Entry<K, V>> {
         self.tree.get(key)
     }
 
