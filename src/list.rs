@@ -113,13 +113,13 @@ impl<E: Clone> FromIterator<E> for List<E> {
     }
 }
 
-impl<E: Clone> Into<Rc<List<E>>> for List<E> {
+/*impl<E: Clone> Into<Rc<List<E>>> for List<E> {
 
     #[inline]
     fn into(self) -> Rc<List<E>> {
         Rc::new(self)
     }
-}
+}*/
 
 impl<'a, E: Clone> IntoIterator for &'a List<E> {
     type Item = E;

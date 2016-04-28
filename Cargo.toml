@@ -1,4 +1,7 @@
 [package]
 name = "immutable"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["thunderseethe <thunderseethe.dev@gmail.com>"]
+description = "A library of immutable persistent data structures for Rust"
+license = "GPL-3.0"
+repository = "https://github.com/thunderseethe/immutable.git"
